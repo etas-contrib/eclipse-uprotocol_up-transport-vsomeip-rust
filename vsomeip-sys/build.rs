@@ -108,18 +108,25 @@ mod build {
     use crate::copy_dir_all;
 
     pub fn build() {
-        let submodule_folder = "vsomeip";
-
         let crate_root = env::var("CARGO_MANIFEST_DIR")
             .expect("CARGO_MANIFEST_DIR environment variable is not set");
 
         let patch_folder = PathBuf::from(&crate_root).join("patches");
         println!("debug: patch_folder: {}", patch_folder.display());
 
-        let submodule_git = PathBuf::from(&crate_root).join(format!("{}/.git", submodule_folder));
+        let submodule_folder = "vsomeip";
+
+        let submodule_git = PathBuf::from(&crate_root)
+            .join(submodule_folder)
+            .join(".git");
         println!("debug: submodule_git: {:?}", submodule_git);
 
         // Make sure that the Git submodule is checked out
+        // Note that this does NOT work when creating a package to be published to crates.io,
+        // because the "cargo package" command does not copy the git metadata information that would
+        // be required to initialize the submodule.
+        // So, in order to make this work when publishing to crates.io, we need to make sure that the
+        // submodule is checked out and initialized _before_ running "cargo package".
         if !Path::new(&submodule_git).exists() {
             let submodule_checkout = Command::new("git")
                 .arg("-C")

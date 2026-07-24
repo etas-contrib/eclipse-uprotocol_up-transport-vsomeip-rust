@@ -1,0 +1,129 @@
+# ********************************************************************************
+#  Copyright (c) 2024 Contributors to the Eclipse Foundation
+#
+#  See the NOTICE file(s) distributed with this work for additional
+#  information regarding copyright ownership.
+#
+#  This program and the accompanying materials are made available under the
+#  terms of the Apache License Version 2.0 which is available at
+#  https://www.apache.org/licenses/LICENSE-2.0
+#
+#  SPDX-License-Identifier: Apache-2.0
+# *******************************************************************************/
+
+# Nightly-scheduled comprehensive test runs that would take too long for on-merge workflows
+# Note: running the coverage job would only make sense if we use that to upload coverage info to a public platform
+
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read # needed for checking out the code
+
+jobs:
+  set-env:
+    uses: ./.github/workflows/setup-env.yaml
+
+  check-msrv:
+    uses: eclipse-uprotocol/ci-cd/.github/workflows/rust-verify-msrv.yaml@ad3f99eac0675c714f08c473412dae14d9fecaa8 # main
+
+  check-latest-deps:
+    uses: eclipse-uprotocol/ci-cd/.github/workflows/rust-verify-latest-deps.yaml@ad3f99eac0675c714f08c473412dae14d9fecaa8 # main
+
+# disabled until we have cargo-deny configuration set up for this repo
+#   deny:
+#     uses: eclipse-uprotocol/ci-cd/.github/workflows/rust-deny-check.yaml@ad3f99eac0675c714f08c473412dae14d9fecaa8 # main
+#     with:
+#       arguments: --all-features --locked --exclude-dev
+
+# disabled until we have a SOME/IP transport spec that includes OFT specification items
+#   current-spec-compliance:
+#     uses: eclipse-uprotocol/ci-cd/.github/workflows/requirements-tracing.yaml@ad3f99eac0675c714f08c473412dae14d9fecaa8 # main
+#     with:
+#       env-file-suffix: "oft-current"
+
+  coverage:
+    name: Determine Test Coverage
+    runs-on: ubuntu-22.04
+    needs: set-env
+
+    env:
+      RUST_TOOLCHAIN: ${{ vars.RUST_TOOLCHAIN || 'stable' }}
+      VSOMEIP_INSTALL_PATH: vsomeip-install
+      ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ needs.set-env.outputs.arch_specific_cpp_stdlib_path }}
+      GENERIC_CPP_STDLIB_PATH: ${{ needs.set-env.outputs.generic_cpp_stdlib_path }}
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          submodules: "recursive"
+          persist-credentials: false
+
+      - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+
+      - name: Install C++ dependencies
+        run: sudo apt-get install -y build-essential cmake libboost-all-dev libclang-dev
+
+      - name: Set environment variables
+        run: |
+          echo "VSOMEIP_INSTALL_PATH=${{ github.workspace }}/${{ env.VSOMEIP_INSTALL_PATH }}" >> $GITHUB_ENV
+
+      - name: Print environment variables for debugging
+        run: |
+          echo "VSOMEIP_INSTALL_PATH: ${{ env.VSOMEIP_INSTALL_PATH }}"
+          env
+
+      - name: Ensure vsomeip install path exists
+        run: |
+          mkdir -p ${{ env.VSOMEIP_INSTALL_PATH }}
+          ls -l
+
+      - name: Install dependencies
+        run: |
+          cargo install --locked cargo-tarpaulin
+          cargo tarpaulin --version
+
+      - name: Show toolchain information
+        working-directory: ${{github.workspace}}
+        run: |
+          rustup toolchain list
+          cargo --version
+
+      - name: Determine code coverage
+        run: |
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${VSOMEIP_INSTALL_PATH}/lib
+          # enable nightly features so that we can also include Doctests
+          cargo +nightly tarpaulin \
+            --no-fail-fast \
+            --all-features --all-targets \
+            --doc \
+            -o xml -o lcov -o html \
+            -- --test-threads 1
+
+      - name: Upload coverage report (xml)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: Test Coverage Results (xml)
+          path: cobertura.xml
+
+      - name: Upload coverage report (lcov)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: Test Coverage Results (lcov)
+          path: lcov.info
+
+      - name: Upload coverage report (html)
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: Test Coverage Results (html)
+          path: tarpaulin-report.html
