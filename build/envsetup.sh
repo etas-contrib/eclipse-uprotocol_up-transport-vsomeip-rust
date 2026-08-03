@@ -57,13 +57,13 @@ select_directory() {
         done
 
         # Prompt the user to enter a choice
-        read -p "Enter the number of your choice: " choice
+        read -r -p "Enter the number of your choice: " choice
 
         # Validate the user’s input
         if [[ "$choice" -ge 1 && "$choice" -le "${#directories[@]}" ]]; then
             selected_path="${directories[choice - 1]}"
         else
-            printf "${RED}Invalid selection ${NC}\n" 1>&2
+            printf "%sInvalid selection %s\n" "${RED}" "${NC}" 1>&2
             return 1
         fi
     fi

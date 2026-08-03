@@ -23,7 +23,8 @@ on:
       - ".github/**"
   workflow_dispatch:
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   policy-checks:

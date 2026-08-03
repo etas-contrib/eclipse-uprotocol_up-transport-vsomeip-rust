@@ -35,21 +35,12 @@ permissions:
 
 env:
   RUST_TOOLCHAIN: ${{ vars.RUST_TOOLCHAIN || 'stable' }}
-  VSOMEIP_INSTALL_PATH: vsomeip-install
 
 jobs:
-
-  set-env:
-    uses: ./.github/workflows/setup-env.yaml
 
   lint:
     name: Lint
     runs-on: ubuntu-22.04
-    needs: set-env
-
-    env:
-       ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ needs.set-env.outputs.arch_specific_cpp_stdlib_path }}
-       GENERIC_CPP_STDLIB_PATH: ${{ needs.set-env.outputs.generic_cpp_stdlib_path }}
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -60,17 +51,14 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: rustfmt, clippy
+          components: rustfmt,clippy
 
-      - name: Install C++ dependencies
+      - name: Setup build environment
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake libboost-all-dev libclang-dev
-
-      - name: Set environment variables
-        run: |
-          echo "VSOMEIP_INSTALL_PATH=${{ github.workspace }}/${{ env.VSOMEIP_INSTALL_PATH }}" >> $GITHUB_ENV
-          env
+          set -euo pipefail
+          source "$GITHUB_WORKSPACE/.github/scripts/install-build-deps.sh"
+          source "$GITHUB_WORKSPACE/.github/scripts/build-envsetup.sh"
 
       - name: Print environment variables for debugging
         run: |
@@ -79,26 +67,18 @@ jobs:
           echo "ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ env.ARCH_SPECIFIC_CPP_STDLIB_PATH }}"
           env
 
-      - name: Ensure vsomeip install path exists
-        run: |
-          mkdir -p ${{ env.VSOMEIP_INSTALL_PATH }}
-          ls -l
+      - name: Check for code errors
+        run: cargo check --all-targets
 
-      - name: cargo fmt
-        working-directory: ${{github.workspace}}
+      - name: Check code formatting
         run: cargo fmt -- --check
-      - name: cargo clippy
-        working-directory: ${{github.workspace}}
+
+      - name: Run Clippy
         run: cargo clippy --all-targets -- -W warnings -D warnings
 
   test:
     name: Test
     runs-on: ubuntu-22.04
-    needs: set-env
-
-    env:
-       ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ needs.set-env.outputs.arch_specific_cpp_stdlib_path }}
-       GENERIC_CPP_STDLIB_PATH: ${{ needs.set-env.outputs.generic_cpp_stdlib_path }}
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -110,44 +90,37 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
 
-      - name: Install C++ dependencies
-        run: sudo apt-get install -y build-essential cmake libboost-all-dev libclang-dev
-
-      - name: Set environment variables
-        run: |
-          echo "VSOMEIP_INSTALL_PATH=${{ github.workspace }}/${{ env.VSOMEIP_INSTALL_PATH }}" >> $GITHUB_ENV
-
-      - name: Print environment variables for debugging
-        run: |
-          echo "VSOMEIP_INSTALL_PATH: ${{ env.VSOMEIP_INSTALL_PATH }}"
-          env
-
-      - name: Ensure vsomeip install path exists
-        run: |
-          mkdir -p ${{ env.VSOMEIP_INSTALL_PATH }}
-          ls -l
-
       - name: Show toolchain information
-        working-directory: ${{github.workspace}}
         run: |
           rustup toolchain list
           cargo --version
 
+      - name: Setup build environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$GITHUB_WORKSPACE/.github/scripts/install-build-deps.sh"
+          source "$GITHUB_WORKSPACE/.github/scripts/build-envsetup.sh"
+
+      - name: Set environment variables
+        run: |
+          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${{ env.VSOMEIP_INSTALL_PATH }}/lib" >> $GITHUB_ENV
+
+      - name: Print environment variables for debugging
+        run: |
+          echo "VSOMEIP_INSTALL_PATH: ${{ env.VSOMEIP_INSTALL_PATH }}"
+          echo "LD_LIBRARY_PATH: ${{ env.LD_LIBRARY_PATH }}"
+          env
+
       - name: Run tests
         run: |
-          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${VSOMEIP_INSTALL_PATH}/lib
-          cargo test \
-            --all-features --all-targets \
-            -- --test-threads 1
+          LD_LIBRARY_PATH=${{ env.LD_LIBRARY_PATH }} cargo test \
+            --all-features --all-targets -- \
+            --test-threads 1
 
   build-docs:
     name: Build documentation
     runs-on: ubuntu-22.04
-    needs: set-env
-
-    env:
-       ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ needs.set-env.outputs.arch_specific_cpp_stdlib_path }}
-       GENERIC_CPP_STDLIB_PATH: ${{ needs.set-env.outputs.generic_cpp_stdlib_path }}
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -155,21 +128,16 @@ jobs:
           submodules: "recursive"
           persist-credentials: false
 
-      - name: Install C++ dependencies
-        run: sudo apt-get install -y build-essential cmake libboost-all-dev libclang-dev
-
-      - name: Set environment variables
+      - name: Setup build environment
+        shell: bash
         run: |
-          echo "VSOMEIP_INSTALL_PATH=${{ github.workspace }}/${{ env.VSOMEIP_INSTALL_PATH }}" >> $GITHUB_ENV
+          set -euo pipefail
+          source "$GITHUB_WORKSPACE/.github/scripts/install-build-deps.sh"
+          source "$GITHUB_WORKSPACE/.github/scripts/build-envsetup.sh"
 
       - name: Print environment variables for debugging
         run: |
           echo "VSOMEIP_INSTALL_PATH: ${{ env.VSOMEIP_INSTALL_PATH }}"
-
-      - name: Ensure vsomeip install path exists
-        run: |
-          mkdir -p ${{ env.VSOMEIP_INSTALL_PATH }}
-          ls -l
 
       - name: Create Documentation for vsomeip-sys
         working-directory: ${{github.workspace}}
