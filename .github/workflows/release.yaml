@@ -18,6 +18,11 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      RUST_TOOLCHAIN:
+        description: 'The Rust toolchain to use for the workflow'
+        required: false
+        default: 'stable'
 
 permissions: {}
 
@@ -26,7 +31,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  RUST_TOOLCHAIN: ${{ vars.RUST_TOOLCHAIN || 'stable' }}
+  RUST_TOOLCHAIN: ${{ github.event.inputs.RUST_TOOLCHAIN || 'stable' }}
 
 jobs:
   authenticate:
@@ -161,6 +166,7 @@ jobs:
           cache: false
 
       - name: Setup native build dependencies
+        id: setup-env
         shell: bash
         run: |
           set -euo pipefail
@@ -233,6 +239,10 @@ jobs:
 
       - name: Verify vsomeip-sys package
         if: steps.existing.outputs.sys_exists == 'false'
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         run: cargo package -p vsomeip-sys
 
       - name: Authenticate for vsomeip-sys

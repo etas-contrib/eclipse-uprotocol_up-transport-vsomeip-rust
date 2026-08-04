@@ -24,7 +24,18 @@ on:
       - "**/Cargo.*"
       - "build/**"
   workflow_call:
+    inputs:
+      RUST_TOOLCHAIN:
+        type: string
+        description: 'The Rust toolchain to use for the workflow'
+        required: false
+        default: 'stable'
   workflow_dispatch:
+    inputs:
+      RUST_TOOLCHAIN:
+        description: 'The Rust toolchain to use for the workflow'
+        required: false
+        default: 'stable'
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -34,16 +45,16 @@ permissions:
   contents: read # needed for checking out the code
 
 env:
-  RUST_TOOLCHAIN: ${{ vars.RUST_TOOLCHAIN || 'stable' }}
-  VSOMEIP_RELEASE_URL: https://github.com/COVESA/vsomeip/archive/refs/tags/
-  VSOMEIP_RELEASE_TAG: 3.4.10.tar.gz
-  VSOMEIP_SOURCE_PATH: vsomeip-src
+  RUST_TOOLCHAIN: ${{ github.event.inputs.RUST_TOOLCHAIN || 'stable' }}
 
 jobs:
 
   obtain_and_build_vsomeip:
     runs-on: ubuntu-22.04
-
+    env:
+      VSOMEIP_RELEASE_URL: https://github.com/COVESA/vsomeip/archive/refs/tags/
+      VSOMEIP_RELEASE_TAG: 3.4.10.tar.gz
+      VSOMEIP_SOURCE_PATH: vsomeip-src
     outputs:
       cache_key: ${{ steps.cache-vsomeip.outputs.cache-primary-key }}
 
@@ -53,58 +64,38 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup native build dependencies
+      - name: Setup build environment
+        id: setup-env
         shell: bash
         run: |
           set -euo pipefail
           source "$GITHUB_WORKSPACE/.github/scripts/build-envsetup.sh"
 
-      - name: Set environment variables
-        run: |
-          echo "VSOMEIP_SOURCE_TARBALL=${{ env.VSOMEIP_RELEASE_URL }}${{ env.VSOMEIP_RELEASE_TAG }}" >> $GITHUB_ENV
-          echo "VSOMEIP_SOURCE_PATH=${{ github.workspace }}/${{ env.VSOMEIP_SOURCE_PATH }}" >> $GITHUB_ENV
-          echo "VSOMEIP_SOURCE_PATH_WITH_WILDCARD=${{ github.workspace }}/${{ env.VSOMEIP_SOURCE_PATH }}/*" >> $GITHUB_ENV
-          env
-
-      - name: Print environment variables for debugging
-        run: |
-          echo "VSOMEIP_SOURCE_TARBALL: ${{ env.VSOMEIP_SOURCE_TARBALL }}"
-          echo "VSOMEIP_SOURCE_PATH: ${{ env.VSOMEIP_SOURCE_PATH }}"
-          echo "VSOMEIP_INSTALL_PATH: ${{ env.VSOMEIP_INSTALL_PATH }}"
-          echo "VSOMEIP_SOURCE_PATH_WITH_WILDCARD: ${{ env.VSOMEIP_SOURCE_PATH_WITH_WILDCARD }}"
-          echo "GENERIC_CPP_STDLIB_PATH: ${{ env.GENERIC_CPP_STDLIB_PATH }}"
-          echo "ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ env.ARCH_SPECIFIC_CPP_STDLIB_PATH }}"
-          env
-          
-      - name: Download tarball
+      - name: Download and extract vsomeip tarball
+        id: download-vsomeip
+        env:
+          VSOMEIP_SOURCE_PATH: ${{ github.workspace }}/${{ env.VSOMEIP_SOURCE_PATH }}
+          VSOMEIP_SOURCE_TARBALL: ${{ env.VSOMEIP_RELEASE_URL }}${{ env.VSOMEIP_RELEASE_TAG }}
         run: |
           wget -O vsomeip-source.tar.gz $VSOMEIP_SOURCE_TARBALL
-          ls -l
-
-      - name: Create destination directory
-        run: |
           mkdir -p $VSOMEIP_SOURCE_PATH
-          ls -l
-
-      - name: Decompress tarball
-        run: |
           tar --strip-components=1 -xzf vsomeip-source.tar.gz -C $VSOMEIP_SOURCE_PATH
-          ls -l
-
-      - name: Confirm decompressed
-        run: |
           echo "Current working directory: $(pwd)"
           echo "Contents of repository root:"
           ls -l
           echo "Contents of decompressed folder ($VSOMEIP_SOURCE_PATH):"
           ls -l $VSOMEIP_SOURCE_PATH
+          {
+            echo "VSOMEIP_SOURCE_PATH=$VSOMEIP_SOURCE_PATH"
+            echo "VSOMEIP_SOURCE_PATH_WITH_WILDCARD=$VSOMEIP_SOURCE_PATH/*"
+          } >> $GITHUB_OUTPUT
 
-      - name: Cache vsomeip build
+      - name: Restore vsomeip binaries from cache
         id: cache-vsomeip
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ${{ env.VSOMEIP_INSTALL_PATH }}
-          key: ${{ runner.os }}-vsomeip-${{ hashFiles(env.VSOMEIP_SOURCE_PATH_WITH_WILDCARD) }}
+          path: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          key: ${{ runner.os }}-vsomeip-${{ hashFiles(steps.download-vsomeip.outputs.VSOMEIP_SOURCE_PATH_WITH_WILDCARD) }}
           restore-keys: |
             ${{ runner.os }}-vsomeip-
 
@@ -115,16 +106,23 @@ jobs:
 
       - name: Build vsomeip
         if: steps.cache-vsomeip.outputs.cache-hit != 'true'
+        env:
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          VSOMEIP_SOURCE_PATH: ${{ steps.download-vsomeip.outputs.VSOMEIP_SOURCE_PATH }}
         run: |
           cd $VSOMEIP_SOURCE_PATH
-          cmake -Bbuild -DCMAKE_INSTALL_PREFIX=$VSOMEIP_INSTALL_PATH -DENABLE_SIGNAL_HANDLING=1 .
+          cmake -Bbuild \
+            -DCMAKE_INSTALL_PREFIX=$VSOMEIP_INSTALL_PATH \
+            -DENABLE_SIGNAL_HANDLING=1 .
           cmake --build build --target install
 
-      - name: Save vsomeip build to cache
+      - name: Save vsomeip binaries to cache
         if: steps.cache-vsomeip.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ${{ env.VSOMEIP_INSTALL_PATH }}
+          path: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
           key: ${{ steps.cache-vsomeip.outputs.cache-primary-key }}
 
   lint:
@@ -132,9 +130,6 @@ jobs:
     needs: 
       - obtain_and_build_vsomeip
     runs-on: ubuntu-22.04
-
-    env:
-      CACHE_KEY: ${{ needs.obtain_and_build_vsomeip.outputs.cache_key }}
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -147,37 +142,42 @@ jobs:
           components: rustfmt,clippy
 
       - name: Setup environment variables
+        id: setup-env
         shell: bash
         run: |
           set -euo pipefail
           source "$GITHUB_WORKSPACE/.github/scripts/build-envsetup.sh"
 
-      - name: Print environment variables for debugging
-        run: |
-          echo "VSOMEIP_INSTALL_PATH: ${{ env.VSOMEIP_INSTALL_PATH }}"
-
-      - name: Print cache_key
-        run: |
-          echo "cache_key: ${{ env.CACHE_KEY }}"
-
-      - name: Restore vsomeip build cache
+      - name: Restore vsomeip binaries from cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           fail-on-cache-miss: true
-          path: ${{ env.VSOMEIP_INSTALL_PATH }}
-          key: ${{ env.CACHE_KEY }}
+          path: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          key: ${{ needs.obtain_and_build_vsomeip.outputs.cache_key }}
           restore-keys: |
             ${{ runner.os }}-vsomeip-
 
       - name: Check for code errors
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         working-directory: ${{github.workspace}}
         run: cargo check --no-default-features
 
       - name: Check code formatting
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         working-directory: ${{github.workspace}}
         run: cargo fmt -- --check
 
       - name: Run Clippy
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         working-directory: ${{github.workspace}}
         run: cargo clippy --no-default-features --all-targets -- -W warnings -D warnings
 
@@ -186,9 +186,6 @@ jobs:
     needs: 
       - obtain_and_build_vsomeip
     runs-on: ubuntu-22.04
-
-    env:
-      CACHE_KEY: ${{ needs.obtain_and_build_vsomeip.outputs.cache_key }}
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -205,47 +202,36 @@ jobs:
           cargo --version
 
       - name: Setup environment variables
+        id: setup-env
         shell: bash
         run: |
           set -euo pipefail
           source "$GITHUB_WORKSPACE/.github/scripts/install-build-deps.sh"
           source "$GITHUB_WORKSPACE/.github/scripts/build-envsetup.sh"
 
-      - name: Set environment variables
-        run: |
-          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${{ env.VSOMEIP_INSTALL_PATH }}/lib" >> $GITHUB_ENV
-
-      - name: Print environment variables for debugging
-        run: |
-          echo "VSOMEIP_INSTALL_PATH: ${{ env.VSOMEIP_INSTALL_PATH }}"
-          echo "LD_LIBRARY_PATH: ${{ env.LD_LIBRARY_PATH }}"
-
-      - name: Print cache_key
-        run: |
-          echo "cache_key: ${{ env.CACHE_KEY }}"
-
-      - name: Restore vsomeip build cache
+      - name: Restore vsomeip binaries from cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           fail-on-cache-miss: true
-          path: ${{ env.VSOMEIP_INSTALL_PATH }}
-          key: ${{ env.CACHE_KEY }}
+          path: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          key: ${{ needs.obtain_and_build_vsomeip.outputs.cache_key }}
           restore-keys: |
             ${{ runner.os }}-vsomeip-
 
       - name: Run tests
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         run: |
-          LD_LIBRARY_PATH=${{ env.LD_LIBRARY_PATH }} cargo test \
-          --no-default-features --all-targets -- \
-          --test-threads 1
+          LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$VSOMEIP_INSTALL_PATH/lib \
+          cargo test --no-default-features --all-targets -- --test-threads 1
 
   build-docs:
     name: Build documentation
     needs: 
       - obtain_and_build_vsomeip
     runs-on: ubuntu-22.04
-    env:
-      CACHE_KEY: ${{ needs.obtain_and_build_vsomeip.outputs.cache_key }}
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -257,32 +243,33 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
 
       - name: Setup environment variables
+        id: setup-env
         shell: bash
         run: |
           set -euo pipefail
           source "$GITHUB_WORKSPACE/.github/scripts/build-envsetup.sh"
 
-      - name: Print environment variables for debugging
-        run: |
-          echo "VSOMEIP_INSTALL_PATH: ${{ env.VSOMEIP_INSTALL_PATH }}"
-
-      - name: Print cache_key
-        run: |
-          echo "cache_key: ${{ env.CACHE_KEY }}"
-
-      - name: Restore vsomeip build cache
+      - name: Restore vsomeip binaries from cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           fail-on-cache-miss: true
-          path: ${{ env.VSOMEIP_INSTALL_PATH }}
-          key: ${{ env.CACHE_KEY }}
+          path: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          key: ${{ needs.obtain_and_build_vsomeip.outputs.cache_key }}
           restore-keys: |
             ${{ runner.os }}-vsomeip-
 
       - name: Create Documentation for vsomeip-sys
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         working-directory: ${{github.workspace}}
         run: RUSTDOCFLAGS=-Dwarnings cargo doc -p vsomeip-sys --no-deps --no-default-features
 
       - name: Create Documentation for up-transport-vsomeip
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         working-directory: ${{github.workspace}}
         run: RUSTDOCFLAGS=-Dwarnings cargo doc -p up-transport-vsomeip --no-deps --no-default-features

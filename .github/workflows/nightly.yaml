@@ -20,6 +20,11 @@ on:
   schedule:
     - cron: '0 3 * * *'
   workflow_dispatch:
+    inputs:
+      RUST_TOOLCHAIN:
+        description: 'The Rust toolchain to use for the workflow'
+        required: false
+        default: 'stable'
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -29,7 +34,7 @@ permissions:
   contents: read # needed for checking out the code
 
 env:
-  RUST_TOOLCHAIN: ${{ vars.RUST_TOOLCHAIN || 'stable' }}
+  RUST_TOOLCHAIN: ${{ github.event.inputs.RUST_TOOLCHAIN || 'stable' }}
 
 jobs:
   check-msrv:
@@ -50,6 +55,7 @@ jobs:
         run: cargo install --locked cargo-hack
 
       - name: Setup native build dependencies
+        id: setup-env
         shell: bash
         run: |
           set -euo pipefail
@@ -57,6 +63,10 @@ jobs:
           source "$GITHUB_WORKSPACE/.github/scripts/build-envsetup.sh"
 
       - name: check MSRV
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         run: |
           cargo hack check --rust-version --workspace --all-targets --ignore-private --all-features
 
@@ -75,15 +85,24 @@ jobs:
           components: rustfmt
 
       - name: Setup native build dependencies
+        id: setup-env
         shell: bash
         run: |
           set -euo pipefail
           source "$GITHUB_WORKSPACE/.github/scripts/install-build-deps.sh"
           source "$GITHUB_WORKSPACE/.github/scripts/build-envsetup.sh"
 
-      - run: cargo update --verbose
-      - run: cargo build --verbose --all-features
-      - run: cargo test --verbose --all-features
+      - name: Update dependencies
+        run: cargo update --verbose
+
+      - name: Run tests
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
+        run: |
+          LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$VSOMEIP_INSTALL_PATH/lib \
+            cargo test --verbose --all-features
 
 # disabled until we have cargo-deny configuration set up for this repo
 #   deny:
@@ -124,18 +143,18 @@ jobs:
           cargo --version
 
       - name: Setup native build dependencies
+        id: setup-env
         shell: bash
         run: |
           set -euo pipefail
           source "$GITHUB_WORKSPACE/.github/scripts/install-build-deps.sh"
           source "$GITHUB_WORKSPACE/.github/scripts/build-envsetup.sh"
 
-      - name: Print environment variables for debugging
-        run: |
-          echo "VSOMEIP_INSTALL_PATH: ${{ env.VSOMEIP_INSTALL_PATH }}"
-          env
-
       - name: Determine code coverage
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         run: |
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${VSOMEIP_INSTALL_PATH}/lib
           # enable nightly features so that we can also include Doctests

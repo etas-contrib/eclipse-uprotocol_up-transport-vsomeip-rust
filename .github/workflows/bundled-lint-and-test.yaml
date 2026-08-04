@@ -24,7 +24,18 @@ on:
       - "**/Cargo.*"
       - "build/**"
   workflow_call:
+    inputs:
+      RUST_TOOLCHAIN:
+        type: string
+        description: 'The Rust toolchain to use for the workflow'
+        required: false
+        default: 'stable'
   workflow_dispatch:
+    inputs:
+      RUST_TOOLCHAIN:
+        description: 'The Rust toolchain to use for the workflow'
+        required: false
+        default: 'stable'
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -34,7 +45,7 @@ permissions:
   contents: read # needed for checking out the code
 
 env:
-  RUST_TOOLCHAIN: ${{ vars.RUST_TOOLCHAIN || 'stable' }}
+  RUST_TOOLCHAIN: ${{ github.event.inputs.RUST_TOOLCHAIN || 'stable' }}
 
 jobs:
 
@@ -54,26 +65,32 @@ jobs:
           components: rustfmt,clippy
 
       - name: Setup build environment
+        id: setup-env
         shell: bash
         run: |
           set -euo pipefail
           source "$GITHUB_WORKSPACE/.github/scripts/install-build-deps.sh"
           source "$GITHUB_WORKSPACE/.github/scripts/build-envsetup.sh"
 
-      - name: Print environment variables for debugging
-        run: |
-          echo "VSOMEIP_INSTALL_PATH: ${{ env.VSOMEIP_INSTALL_PATH }}"
-          echo "GENERIC_CPP_STDLIB_PATH: ${{ env.GENERIC_CPP_STDLIB_PATH }}"
-          echo "ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ env.ARCH_SPECIFIC_CPP_STDLIB_PATH }}"
-          env
-
       - name: Check for code errors
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         run: cargo check --all-targets
 
       - name: Check code formatting
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         run: cargo fmt -- --check
 
       - name: Run Clippy
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         run: cargo clippy --all-targets -- -W warnings -D warnings
 
   test:
@@ -96,27 +113,23 @@ jobs:
           cargo --version
 
       - name: Setup build environment
+        id: setup-env
         shell: bash
         run: |
           set -euo pipefail
           source "$GITHUB_WORKSPACE/.github/scripts/install-build-deps.sh"
           source "$GITHUB_WORKSPACE/.github/scripts/build-envsetup.sh"
 
-      - name: Set environment variables
-        run: |
-          echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${{ env.VSOMEIP_INSTALL_PATH }}/lib" >> $GITHUB_ENV
-
-      - name: Print environment variables for debugging
-        run: |
-          echo "VSOMEIP_INSTALL_PATH: ${{ env.VSOMEIP_INSTALL_PATH }}"
-          echo "LD_LIBRARY_PATH: ${{ env.LD_LIBRARY_PATH }}"
-          env
-
       - name: Run tests
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         run: |
-          LD_LIBRARY_PATH=${{ env.LD_LIBRARY_PATH }} cargo test \
-            --all-features --all-targets -- \
-            --test-threads 1
+          LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$VSOMEIP_INSTALL_PATH/lib \
+            cargo test \
+              --all-features --all-targets -- \
+              --test-threads 1
 
   build-docs:
     name: Build documentation
@@ -129,20 +142,25 @@ jobs:
           persist-credentials: false
 
       - name: Setup build environment
+        id: setup-env
         shell: bash
         run: |
           set -euo pipefail
           source "$GITHUB_WORKSPACE/.github/scripts/install-build-deps.sh"
           source "$GITHUB_WORKSPACE/.github/scripts/build-envsetup.sh"
 
-      - name: Print environment variables for debugging
-        run: |
-          echo "VSOMEIP_INSTALL_PATH: ${{ env.VSOMEIP_INSTALL_PATH }}"
-
       - name: Create Documentation for vsomeip-sys
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         working-directory: ${{github.workspace}}
         run: RUSTDOCFLAGS=-Dwarnings cargo doc -p vsomeip-sys --no-deps
 
       - name: Create Documentation for up-transport-vsomeip
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         working-directory: ${{github.workspace}}
         run: RUSTDOCFLAGS=-Dwarnings cargo doc -p up-transport-vsomeip --no-deps

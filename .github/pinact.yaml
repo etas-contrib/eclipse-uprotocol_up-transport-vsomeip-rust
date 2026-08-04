@@ -9,3 +9,5 @@ rules:
   conditions:
   - expr: |
       ActionRepoOwner == 'eclipse-uprotocol' && ActionRepoName == 'ci-cd'
+  - expr: |
+      ActionRepoOwner == 'actions-rust-lang' && ActionRepoName == 'setup-rust-toolchain'
