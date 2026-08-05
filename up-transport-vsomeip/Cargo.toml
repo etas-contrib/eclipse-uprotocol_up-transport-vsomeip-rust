@@ -28,25 +28,24 @@ default = ["bundled"]
 bundled = ["vsomeip-sys/bundled"]
 
 [dependencies]
-async-trait = { workspace = true }
-bimap = { workspace = true }
+async-trait = { version = "0.1" }
+bimap = { version = "0.6.3" }
 bytes = { workspace = true }
-crossbeam-channel = { workspace = true }
+crossbeam-channel = { version = "0.5.13" }
 cxx = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
-tokio = { workspace = true }
-up-rust = { workspace = true }
+lazy_static = { workspace = true }
+log = { workspace = true }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = { version = "1.0" }
+tempfile = "3.27"
+tokio = { version = "1.53.1", features = ["rt-multi-thread", "sync", "time"] }
+up-rust = { version = "0.9.0" }
 vsomeip-proc-macro = { workspace = true }
 vsomeip-sys = { workspace = true }
-lazy_static = { workspace = true }
-protobuf = { workspace = true }
-log = { workspace = true }
-once_cell = { workspace = true }
-futures = "0.3.30"
-tempfile = "3.16.0"
 
 [dev-dependencies]
 env_logger = { version = "0.11.3" }
 hello-world-protos = { path = "../example-utils/hello-world-protos" }
+protobuf = { workspace = true }
 test-case = { version = "3.3" }
+tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "sync", "time"] }

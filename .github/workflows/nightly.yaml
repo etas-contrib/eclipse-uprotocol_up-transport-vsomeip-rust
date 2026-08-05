@@ -45,12 +45,6 @@ jobs:
           persist-credentials: false
           submodules: "recursive"
 
-      - name: Setup Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
-        with:
-          toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: rustfmt
-
       - name: Install cargo-hack
         run: cargo install --locked cargo-hack
 
@@ -82,7 +76,6 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: rustfmt
 
       - name: Setup native build dependencies
         id: setup-env
@@ -102,7 +95,9 @@ jobs:
           GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         run: |
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$VSOMEIP_INSTALL_PATH/lib \
-            cargo test --verbose --all-features
+            cargo test \
+              --verbose --all-features --all-targets -- \
+              --test-threads 1
 
 # disabled until we have cargo-deny configuration set up for this repo
 #   deny:
@@ -130,7 +125,6 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
-          components: rustfmt
 
       - name: Install cargo-tarpaulin
         run: |

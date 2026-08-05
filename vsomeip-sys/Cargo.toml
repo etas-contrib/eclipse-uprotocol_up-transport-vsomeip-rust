@@ -22,7 +22,7 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
-readme = "../README.md"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -34,11 +34,9 @@ vendored-ssl = ["bundled", "ssl", "openssl-sys/vendored"]
 
 [dependencies]
 autocxx = { version = "0.30.0" }
-crossbeam-channel = "0.5.13"
 cxx = { version = "1.0.198" }
-lazy_static = { version = "1.4.0" }
-once_cell = { version = "1.19.0" }
-log = { version = "0.4.21" }
+lazy_static = { workspace = true }
+log = { workspace = true }
 openssl-sys = { version = "0.9", optional = true }
 
 [build-dependencies]

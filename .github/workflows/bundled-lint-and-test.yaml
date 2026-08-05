@@ -141,6 +141,10 @@ jobs:
           submodules: "recursive"
           persist-credentials: false
 
+      - uses: actions-rust-lang/setup-rust-toolchain@166cdcfd11aee3cb47222f9ddb555ce30ddb9659 # v1.17.0
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+
       - name: Setup build environment
         id: setup-env
         shell: bash
