@@ -340,10 +340,7 @@ impl VsomeipMessageToUMessage {
             }
             _ => Err(UStatus::fail_with_code(
                 UCode::OUT_OF_RANGE,
-                format!(
-                    "Not one of the handled message types from SOME/IP: {:?}",
-                    msg_type
-                ),
+                format!("Not one of the handled message types from SOME/IP: {msg_type}"),
             )),
         }
     }

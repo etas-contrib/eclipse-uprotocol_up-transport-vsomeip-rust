@@ -64,6 +64,33 @@ mod unsafe_fns {
 
 pub mod vsomeip {
     pub use crate::ffi::vsomeip_v3::*;
+    impl core::fmt::Display for state_type_e {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            let s = match self {
+                state_type_e::ST_REGISTERED => "ST_REGISTERED",
+                state_type_e::ST_DEREGISTERED => "ST_DEREGISTERED",
+            };
+            write!(f, "{}", s)
+        }
+    }
+    impl core::fmt::Display for message_type_e {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            let s = match self {
+                message_type_e::MT_ERROR => "MT_ERROR",
+                message_type_e::MT_ERROR_ACK => "MT_ERROR_ACK",
+                message_type_e::MT_NOTIFICATION => "MT_NOTIFICATION",
+                message_type_e::MT_NOTIFICATION_ACK => "MT_NOTIFICATION_ACK",
+                message_type_e::MT_REQUEST => "MT_REQUEST",
+                message_type_e::MT_REQUEST_ACK => "MT_REQUEST_ACK",
+                message_type_e::MT_REQUEST_NO_RETURN => "MT_REQUEST_NO_RETURN",
+                message_type_e::MT_REQUEST_NO_RETURN_ACK => "MT_REQUEST_NO_RETURN_ACK",
+                message_type_e::MT_RESPONSE => "MT_RESPONSE",
+                message_type_e::MT_RESPONSE_ACK => "MT_RESPONSE_ACK",
+                message_type_e::MT_UNKNOWN => "MT_UNKNOWN",
+            };
+            write!(f, "{}", s)
+        }
+    }
 }
 
 pub mod glue {
@@ -165,7 +192,7 @@ mod tests {
         // in production code we'll probably have to have a registry of channel receivers
         // tied to specific available_state_handler_i which we look up and get in the controlling thread
         extern "C" fn available_state_handler(available_state: state_type_e) {
-            println!("available_state: {available_state:?}");
+            println!("available_state: {available_state}");
 
             if let Some(ref tx) = *SENDER.lock().unwrap() {
                 tx.send(available_state).unwrap();
@@ -200,7 +227,7 @@ mod tests {
             let rx = binding.as_ref().unwrap();
 
             while let Ok(msg) = rx.recv_timeout(Duration::from_secs(5)) {
-                println!("Received: {:?}", msg);
+                println!("Received: {msg}");
 
                 match msg {
                     state_type_e::ST_REGISTERED => {

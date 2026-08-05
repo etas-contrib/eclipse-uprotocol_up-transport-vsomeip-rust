@@ -225,7 +225,7 @@ impl UPTransportVsomeipEngine {
                 ));
             }
             Ok(app_state) => {
-                info!("app_state: {app_state:?}");
+                info!("app_state: {app_state}");
 
                 application_wrapper.get_pinned().unregister_state_handler();
                 application_state_availability_handler_registry

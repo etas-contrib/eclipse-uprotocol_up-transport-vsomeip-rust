@@ -110,7 +110,7 @@ fn main() {
         let msg_wrapper = make_message_wrapper(cloned_msg);
 
         let msg_type = msg_wrapper.get_message_base_pinned().get_message_type();
-        println!("message_type_e: {msg_type:?}");
+        println!("message_type_e: {msg_type}");
 
         let Some(payload_wrapper) = msg_wrapper.get_message_payload() else {
             panic!("Unable to get PayloadWrapper from MessageWrapper");

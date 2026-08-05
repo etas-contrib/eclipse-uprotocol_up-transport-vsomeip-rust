@@ -196,13 +196,13 @@ mod build {
     }
 }
 mod bindings {
-    use crate::vsomeip_lib_path;
     use std::ffi::OsString;
-    use std::fs;
     use std::fs::File;
-    use std::io::{BufRead, BufReader, BufWriter, Write};
+    use std::io::{BufReader, BufWriter, Write};
     use std::path::{Path, PathBuf};
-    use std::process::Command;
+
+    use crate::vsomeip_lib_path;
+    use miette::IntoDiagnostic;
 
     pub fn generate_bindings(
         out_dir: &OsString,
@@ -249,98 +249,35 @@ mod bindings {
             .compile("cxx-portion");
         println!("cargo:rerun-if-changed=src/cxx_bridge.rs");
 
-        // we rewrite the autocxx generated code to suppress the cargo warning about unused imports
+        // we rewrite the autocxx generated code to suppress some clippy warnings
         let file_path = Path::new(&out_dir)
             .join("autocxx-build-dir")
             .join("rs")
             .join("autocxx-ffi-default-gen.rs");
         println!("debug: file_path : {}", file_path.display());
 
-        if !file_path.exists() {
-            panic!("Unable to find autocxx generated code to rewrite");
-        }
-
-        // Run rustfmt on the file
-        let status = Command::new("rustfmt")
-            .arg(&file_path)
-            .status()
-            .expect("Failed to execute rustfmt");
-
-        if !status.success() {
-            panic!("Failed to format autocxx generated file");
-        }
-
         // Open the input file for reading
-        let input_file = File::open(&file_path).expect("Failed to open the input file for reading");
-        let reader = BufReader::new(input_file);
+        let input_file = File::open(&file_path).into_diagnostic()?;
+        let mut reader = BufReader::new(input_file);
 
         // Create a temporary file for writing the modified content
         let temp_file_path = file_path.with_extension("tmp");
-        let temp_file =
-            File::create(&temp_file_path).expect("Failed to create a temporary file for writing");
+        let temp_file = File::create(&temp_file_path).into_diagnostic()?;
         let mut writer = BufWriter::new(temp_file);
 
-        for line in reader.lines() {
-            let mut line = line.expect("Failed to read a line from the input file");
-            line = fix_unused_imports(line);
-            line = fix_unsafe_fn_unused(line);
-            line = fix_doc_build(line);
-            line = add_enum_debug(line);
-
-            writeln!(writer, "{}", line).expect("Failed to write a line to the temporary file");
-        }
-
-        writer.flush().expect("Failed to flush the writer buffer");
-        fs::rename(temp_file_path, file_path)
-            .expect("Failed to rename the temporary file to the original file");
+        // suppress clippy warnings for missing safety docs in the autocxx generated code
+        write!(writer, "# [allow (clippy::missing_safety_doc)] ").into_diagnostic()?;
+        // suppress rustdoc warnings regarding broken intra-doc links
+        // some of the vsomeip header files have documentation that contains character sequences that rustdoc
+        // interprets as intra-doc links, but they are not valid links, so rustdoc complains about them
+        write!(writer, "# [allow (rustdoc::broken_intra_doc_links)] ").into_diagnostic()?;
+        // now copy the rest of the file
+        std::io::copy(&mut reader, &mut writer).into_diagnostic()?;
+        writer.flush().into_diagnostic()?;
+        std::fs::rename(temp_file_path, file_path).into_diagnostic()?;
 
         println!("debug: rewrote the autocxx file");
         Ok(())
-    }
-
-    fn fix_unused_imports(line: String) -> String {
-        let mut fixed_line = line.replace(
-            "pub use bindgen::root::std_chrono_duration_long_AutocxxConcrete;",
-            "",
-        );
-        fixed_line = fixed_line.replace(
-            "pub use bindgen::root::std_chrono_duration_int64_t_AutocxxConcrete;",
-            "",
-        );
-        fixed_line = fixed_line.replace(
-            "pub use super::super::bindgen::root::std::chrono::seconds;",
-            "",
-        );
-
-        fixed_line
-    }
-
-    fn fix_unsafe_fn_unused(line: String) -> String {
-        let mut fixed_line =
-            line.replace("pub unsafe fn create_payload1", "unsafe fn create_payload1");
-        fixed_line = fixed_line.replace(
-            "pub unsafe fn set_data(self: Pin<&mut payload>, _data: *const u8, _length: u32);",
-            "pub(crate) unsafe fn set_data(self: Pin<&mut payload>, _data: *const u8, _length: u32);",
-        );
-
-        fixed_line
-    }
-
-    fn fix_doc_build(line: String) -> String {
-        // we may have to fix more in the future
-        #[allow(clippy::let_and_return)]
-        let fixed_line = line.replace("successfully [de]registered", "successfully de/registered");
-        fixed_line
-    }
-
-    fn add_enum_debug(line: String) -> String {
-        // we may have to fix more in the future
-        #[allow(clippy::let_and_return)]
-        let fixed_line = line.replace(
-            "#[derive(Clone, Hash, PartialEq, Eq)]",
-            "#[derive(Clone, Hash, PartialEq, Eq, Debug)]",
-        );
-        fixed_line
     }
 }
 

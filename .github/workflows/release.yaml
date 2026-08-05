@@ -279,6 +279,10 @@ jobs:
 
       - name: Verify up-transport-vsomeip package
         if: steps.existing.outputs.transport_exists == 'false'
+        env:
+          VSOMEIP_INSTALL_PATH: ${{ steps.setup-env.outputs.VSOMEIP_INSTALL_PATH }}
+          ARCH_SPECIFIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.ARCH_SPECIFIC_CPP_STDLIB_PATH }}
+          GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         run: cargo package -p up-transport-vsomeip
 
       - name: Authenticate for up-transport-vsomeip
