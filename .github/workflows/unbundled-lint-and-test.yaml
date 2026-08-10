@@ -45,7 +45,7 @@ permissions:
   contents: read # needed for checking out the code
 
 env:
-  RUST_TOOLCHAIN: ${{ github.event.inputs.RUST_TOOLCHAIN || 'stable' }}
+  RUST_TOOLCHAIN: ${{ inputs.RUST_TOOLCHAIN || 'stable' }}
 
 jobs:
 
