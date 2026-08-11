@@ -36,7 +36,7 @@ short-lived token; it cannot run a publish command.
    source build/envsetup.sh highest
    cargo fmt --all -- --check
    cargo clippy --all-targets -- -W warnings -D warnings
-   cargo test -- --test-threads 1
+   VSOMEIP_INSTALL_PATH=<path/to/vsomeip/install> LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$VSOMEIP_INSTALL_PATH/lib cargo test -- --test-threads 1
    cargo package --list -p vsomeip-proc-macro
    cargo package --list -p vsomeip-sys
    cargo package --list -p up-transport-vsomeip
