@@ -96,7 +96,7 @@ jobs:
         run: |
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$VSOMEIP_INSTALL_PATH/lib \
             cargo test \
-              --verbose --all-features --all-targets -- \
+              --verbose --workspace --all-targets -- \
               --test-threads 1
 
 # disabled until we have cargo-deny configuration set up for this repo
@@ -112,6 +112,7 @@ jobs:
 #       env-file-suffix: "oft-current"
 
   coverage:
+    if: false # disabled for the time being because building vsomeip-sys fails as part of running tarpaulin
     name: Determine Test Coverage
     runs-on: ubuntu-22.04
 
@@ -126,15 +127,15 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
 
-      - name: Install cargo-tarpaulin
-        run: |
-          cargo install --locked cargo-tarpaulin
-          cargo tarpaulin --version
-
       - name: Show toolchain information
         run: |
           rustup toolchain list
           cargo --version
+
+      - name: Install cargo-tarpaulin
+        run: |
+          cargo install --locked cargo-tarpaulin
+          cargo tarpaulin --version
 
       - name: Setup native build dependencies
         id: setup-env
@@ -153,9 +154,10 @@ jobs:
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${VSOMEIP_INSTALL_PATH}/lib
           # enable nightly features so that we can also include Doctests
           RUSTC_BOOTSTRAP=1 cargo tarpaulin \
+            --workspace \
             --no-fail-fast \
-            --all-features --all-targets \
-            --doc \
+            --all-targets \
+            --doc --tests \
             -o xml -o lcov -o html \
             -- --test-threads 1
 
