@@ -22,7 +22,7 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 version.workspace = true
-readme = "../README.md"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -30,7 +30,7 @@ readme = "../README.md"
 proc-macro = true
 
 [dependencies]
-proc-macro2 = "1.0"
-quote = "1.0"
+proc-macro2 = "1.0.107"
+quote = "1.0.47"
 rayon = "1.10.0"
-syn = { version = "2.0.53", features = ["full", "visit-mut"] }
+syn = { version = "2.0.119", features = ["full", "visit-mut"] }
