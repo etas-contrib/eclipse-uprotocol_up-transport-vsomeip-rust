@@ -12,11 +12,11 @@
  ********************************************************************************/
 
 use hello_world_protos::hello_world_service::{HelloRequest, HelloResponse};
-use log::trace;
 use std::fs::canonicalize;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
+use tracing::trace;
 use up_rust::communication::{CallOptions, InMemoryRpcClient, RpcClient, UPayload};
 use up_rust::UPayloadFormat::UPAYLOAD_FORMAT_PROTOBUF_WRAPPED_IN_ANY;
 use up_rust::{UStatus, UUri};
@@ -45,7 +45,7 @@ const REQUEST_TTL: u32 = 1000;
 
 #[tokio::main]
 async fn main() -> Result<(), UStatus> {
-    env_logger::init();
+    let _ = tracing_subscriber::fmt::try_init();
 
     println!("mE_client");
 

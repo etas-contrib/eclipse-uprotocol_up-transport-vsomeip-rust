@@ -22,7 +22,6 @@ use crate::transport_engine::{
 };
 use crate::utils::any_uuri_fixed_authority_id;
 use crate::vsomeip_config::extract_services;
-use log::{error, trace, warn};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use std::thread;
@@ -31,6 +30,7 @@ use tokio::sync::mpsc::Sender;
 use tokio::sync::oneshot;
 use tokio::task;
 use tokio::time::timeout;
+use tracing::{error, trace, warn};
 use up_rust::{ComparableListener, UCode, UListener, UStatus, UUri, UUID};
 use vsomeip_config::extract_application;
 pub use vsomeip_config::VsomeipApplicationConfig;

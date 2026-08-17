@@ -14,9 +14,9 @@ use crate::unsafe_fns::upcast;
 use crate::{glue, vsomeip};
 use cxx::{SharedPtr, UniquePtr};
 use glue::{ApplicationWrapper, MessageWrapper, PayloadWrapper, RuntimeWrapper};
-use log::{error, trace};
 use std::pin::Pin;
 use std::slice;
+use tracing::{error, trace};
 use vsomeip::{message, message_base};
 
 pub fn make_application_wrapper(

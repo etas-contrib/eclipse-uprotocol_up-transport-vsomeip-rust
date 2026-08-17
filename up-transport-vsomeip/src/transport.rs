@@ -17,9 +17,9 @@ use crate::transport_engine::TransportCommand;
 use crate::transport_engine::UP_CLIENT_VSOMEIP_FN_TAG_SEND_INTERNAL;
 use crate::UPTransportVsomeip;
 use async_trait::async_trait;
-use log::trace;
 use std::sync::Arc;
 use tokio::sync::oneshot;
+use tracing::trace;
 use up_rust::{
     ComparableListener, LocalUriProvider, UAttributesValidators, UCode, UListener, UMessage,
     UStatus, UTransport, UUri,

@@ -11,7 +11,7 @@
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-use log::trace;
+use tracing::trace;
 use up_rust::{UStatus, UUri};
 
 /// Registration type containing the [ClientId] of the [vsomeip_sys::vsomeip::application]

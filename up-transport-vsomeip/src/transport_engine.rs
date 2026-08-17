@@ -19,7 +19,6 @@ use crate::storage::vsomeip_offered_requested::VsomeipOfferedRequestedRegistry;
 use crate::utils::{split_u32_to_u16, split_u32_to_u8};
 use crate::{ApplicationName, ClientId};
 use cxx::{let_cxx_string, UniquePtr};
-use log::{error, info, trace};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::thread;
@@ -27,6 +26,7 @@ use std::time::Duration;
 use tokio::runtime::Builder;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 use tokio::sync::oneshot;
+use tracing::{error, info, trace};
 use up_rust::{UCode, UMessage, UMessageType, UStatus, UUri};
 use vsomeip_sys::glue::{
     make_application_wrapper, make_payload_wrapper, make_runtime_wrapper, ApplicationWrapper,

@@ -36,8 +36,8 @@ vendored-ssl = ["bundled", "ssl", "openssl-sys/vendored"]
 autocxx = { version = "0.30.0" }
 cxx = { workspace = true }
 lazy_static = { workspace = true }
-log = { workspace = true }
 openssl-sys = { version = "0.9.117", optional = true }
+tracing = { workspace = true }
 
 [build-dependencies]
 autocxx-build = { version = "0.30.0" }

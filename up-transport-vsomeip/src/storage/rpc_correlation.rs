@@ -12,10 +12,10 @@
  ********************************************************************************/
 
 use crate::{ClientId, SessionId, SomeIpRequestId, UProtocolReqId};
-use log::trace;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::sync::RwLock;
+use tracing::trace;
 use up_rust::{UCode, UStatus, UUri};
 
 type UeRequestCorrelation = HashMap<SomeIpRequestId, (UProtocolReqId, UUri)>;

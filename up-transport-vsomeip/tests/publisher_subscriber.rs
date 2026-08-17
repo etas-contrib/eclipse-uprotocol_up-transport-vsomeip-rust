@@ -11,11 +11,11 @@
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-use log::{info, trace};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::Instant;
+use tracing::{info, trace};
 use up_rust::{UListener, UMessage, UMessageBuilder, UPayloadFormat, UTransport, UUri};
 use up_transport_vsomeip::{UPTransportVsomeip, VsomeipApplicationConfig};
 
@@ -68,7 +68,7 @@ pub async fn spawn_artifical_load(duration: Duration) {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn publisher_subscriber() {
-    env_logger::init();
+    let _ = tracing_subscriber::fmt::try_init();
 
     let authority_name = "foo";
 

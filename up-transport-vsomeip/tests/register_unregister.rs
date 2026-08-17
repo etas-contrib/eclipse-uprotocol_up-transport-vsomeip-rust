@@ -18,10 +18,10 @@ use up_transport_vsomeip::UPTransportVsomeip;
 mod tests {
     use crate::test_lib::PrintingListener;
     use crate::{test_lib, UPTransportVsomeip};
-    use log::error;
     use std::path::Path;
     use std::sync::Arc;
     use std::time::Duration;
+    use tracing::error;
     use up_rust::{UListener, UTransport, UUri};
     use up_transport_vsomeip::VsomeipApplicationConfig;
 

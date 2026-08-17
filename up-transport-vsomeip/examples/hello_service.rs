@@ -13,11 +13,11 @@
 
 use async_trait::async_trait;
 use hello_world_protos::hello_world_service::{HelloRequest, HelloResponse};
-use log::{error, trace};
 use std::fs::canonicalize;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::thread;
+use tracing::{error, trace};
 use up_rust::communication::{
     InMemoryRpcServer, RequestHandler, RpcServer, ServiceInvocationError, UPayload,
 };
@@ -97,7 +97,7 @@ impl RequestHandler for ServiceRequestHandler {
 
 #[tokio::main]
 async fn main() -> Result<(), UStatus> {
-    env_logger::init();
+    let _ = tracing_subscriber::fmt::try_init();
 
     println!("mE_service");
 

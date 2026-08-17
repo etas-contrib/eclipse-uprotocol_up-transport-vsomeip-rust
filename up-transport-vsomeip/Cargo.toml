@@ -34,7 +34,7 @@ bytes = { workspace = true }
 crossbeam-channel = { version = "0.5.13" }
 cxx = { workspace = true }
 lazy_static = { workspace = true }
-log = { workspace = true }
+tracing = { workspace = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }
 tempfile = "3.27"
@@ -44,8 +44,9 @@ vsomeip-proc-macro = { workspace = true }
 vsomeip-sys = { workspace = true }
 
 [dev-dependencies]
-env_logger = { version = "0.11.3" }
 hello-world-protos = { path = "../example-utils/hello-world-protos" }
 protobuf = { workspace = true }
 test-case = { version = "3.3" }
 tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+tracing = { workspace = true, default-features = false, features = ["log", "std"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt"] }

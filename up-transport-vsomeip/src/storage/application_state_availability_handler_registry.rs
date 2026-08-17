@@ -14,10 +14,10 @@
 use async_trait::async_trait;
 use crossbeam_channel::{Receiver, Sender};
 use lazy_static::lazy_static;
-use log::{error, trace};
 use std::collections::{HashMap, HashSet};
 use std::sync::RwLock;
 use std::sync::{Arc, Once};
+use tracing::{error, trace};
 use up_rust::{UCode, UStatus};
 use vsomeip_proc_macro::generate_available_state_handler_extern_c_fns;
 use vsomeip_sys::glue::AvailableStateHandlerFnPtr;

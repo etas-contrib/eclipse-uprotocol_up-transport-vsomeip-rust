@@ -1,8 +1,8 @@
 use cxx::{let_cxx_string, SharedPtr};
-use log::error;
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
+use tracing::error;
 use vsomeip_sys::glue::{
     make_application_wrapper, make_message_wrapper, make_runtime_wrapper, MessageHandlerFnPtr,
 };

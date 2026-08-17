@@ -11,12 +11,12 @@
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-use log::{error, info};
 use std::fs::canonicalize;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Weak};
 use std::time::Duration;
 use tokio::time::Instant;
+use tracing::{error, info};
 use up_rust::{UCode, UListener, UMessage, UMessageBuilder, UPayloadFormat, UTransport, UUri};
 use up_transport_vsomeip::UPTransportVsomeip;
 
@@ -126,8 +126,7 @@ impl UListener for RequestListener {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn client_service() {
-    env_logger::init();
-    // console_subscriber::init();
+    let _ = tracing_subscriber::fmt::try_init();
 
     let service_authority_name = "foo";
     let streamer_ue_id = 0x7878;

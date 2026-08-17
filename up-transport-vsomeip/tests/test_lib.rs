@@ -16,7 +16,9 @@ use up_rust::{UListener, UMessage};
 
 static INIT: Once = Once::new();
 pub fn before_test() {
-    INIT.call_once(env_logger::init);
+    INIT.call_once(|| {
+        let _ = tracing_subscriber::fmt::try_init();
+    });
 }
 
 pub struct PrintingListener;

@@ -17,6 +17,7 @@ use serde_json::Value;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use tracing::error;
 use up_rust::{UCode, UStatus};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -56,18 +57,18 @@ where
 
 fn read_json_file(file_path: &Path) -> Result<Value, serde_json::Error> {
     let mut file = File::open(file_path).map_err(|e| {
-        println!(" Failed to open the file path: {:?}", e);
+        error!("Failed to open file path [{file_path:?}]: {e}");
         serde_json::Error::io(e)
     })?;
 
     let mut content = String::new();
     file.read_to_string(&mut content).map_err(|e| {
-        println!(" Failed to read the file: {:?}", e);
+        error!("Failed to read file [{file_path:?}]: {e}");
         serde_json::Error::io(e)
     })?;
 
     let parsed = serde_json::from_str(&content).map_err(|e| {
-        println!(" Failed to parse JSON file  : {:?}", e);
+        error!("Failed to parse JSON file [{file_path:?}]: {e}");
         e
     })?;
 

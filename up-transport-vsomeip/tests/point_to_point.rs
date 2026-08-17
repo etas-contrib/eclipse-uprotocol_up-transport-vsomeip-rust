@@ -11,7 +11,6 @@
  * SPDX-License-Identifier: Apache-2.0
  ********************************************************************************/
 
-use log::{error, info, trace};
 use protobuf::EnumOrUnknown;
 use std::env::current_dir;
 use std::fs::canonicalize;
@@ -19,6 +18,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Weak};
 use std::time::Duration;
 use tokio::time::Instant;
+use tracing::{error, info, trace};
 use up_rust::UMessageType::UMESSAGE_TYPE_UNSPECIFIED;
 use up_rust::UPayloadFormat::UPAYLOAD_FORMAT_PROTOBUF;
 use up_rust::{UCode, UListener, UMessage, UMessageBuilder, UMessageType, UTransport, UUri, UUID};
@@ -326,7 +326,7 @@ fn any_from_authority(authority_name: &str) -> UUri {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn point_to_point() {
-    env_logger::init();
+    let _ = tracing_subscriber::fmt::try_init();
 
     let current_dir = current_dir();
     info!("{current_dir:?}");
