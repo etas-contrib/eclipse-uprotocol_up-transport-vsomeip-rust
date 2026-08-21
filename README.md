@@ -29,12 +29,11 @@ This library leverages the [uProtocol Rust Language Library](https://github.com/
 To run the tests:
 
 ```bash
-VSOMEIP_INSTALL_PATH=<path/to/vsomeip/install> LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$VSOMEIP_INSTALL_PATH/lib cargo test -- --test-threads 1
+VSOMEIP_INSTALL_PATH=<path/to/vsomeip/install> LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$VSOMEIP_INSTALL_PATH/lib cargo test
 ```
 
 Breaking this down:
 * Details about the environment variables can be found in `vsomeip-sys/README.md`.
-* We need to pass in `-- --test-threads 1` because the tests refer to the same configurations and will fall over if they are run simultaneously. So we instruct to use a single thread, i.e. run the tests in serial.
 
 ### Using the Library
 

@@ -46,6 +46,7 @@ vsomeip-sys = { workspace = true }
 [dev-dependencies]
 hello-world-protos = { path = "../example-utils/hello-world-protos" }
 protobuf = { workspace = true }
+serial_test = { workspace = true }
 test-case = { version = "3.3" }
 tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "sync", "time"] }
 tracing = { workspace = true, default-features = false, features = ["log", "std"] }

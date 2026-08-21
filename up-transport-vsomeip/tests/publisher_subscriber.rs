@@ -67,6 +67,7 @@ pub async fn spawn_artifical_load(duration: Duration) {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial_test::serial]
 async fn publisher_subscriber() {
     let _ = tracing_subscriber::fmt::try_init();
 

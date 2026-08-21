@@ -227,7 +227,7 @@ jobs:
           GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         run: |
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$VSOMEIP_INSTALL_PATH/lib \
-          cargo test --no-default-features --all-targets -- --test-threads 1
+            cargo test --no-default-features --all-targets
 
   build-docs:
     name: Build documentation

@@ -122,6 +122,7 @@ mod tests {
     use std::time::{Duration, Instant};
 
     #[test]
+    #[serial_test::serial]
     fn test_make_runtime() {
         let my_runtime = runtime::get();
         let runtime_wrapper = make_runtime_wrapper(my_runtime);
@@ -183,6 +184,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_available_state_handler() {
         // Create a globally accessible sender
         lazy_static! {
@@ -286,6 +288,7 @@ mod tests {
     }
 
     #[test]
+    #[serial_test::serial]
     fn test_service_availability_handler() {
         lazy_static! {
             static ref TIMES_MESSAGE_RECEIVED: AtomicUsize = AtomicUsize::new(0);
