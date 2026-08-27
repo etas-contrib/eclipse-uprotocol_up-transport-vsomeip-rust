@@ -43,3 +43,8 @@ The library contains the following modules:
 | Package   | [uProtocol spec](https://github.com/eclipse-uprotocol/uprotocol-spec) | Purpose |
 | :-------- | :-------------------------------------------------------------------- | :------ |
 | transport | [uP-L1 Specifications](https://github.com/eclipse-uprotocol/up-spec/blob/v1.6.0-alpha.7/up-l1/README.adoc) | Implementation of the `UTransport` trait used for bidirectional point-2-point communication between uEntities.
+
+## Use of genAI in this repository
+
+The repository partially contains AI-generated code by using AI coding assistants.
+This notice needs to remain attached to any reproduction of this repository.
