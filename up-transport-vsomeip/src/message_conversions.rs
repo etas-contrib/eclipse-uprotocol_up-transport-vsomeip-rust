@@ -233,15 +233,15 @@ where {
             session_id
         );
 
-        let (commstatus, vsomeip_msg_type) = {
-            if let Some(commstatus) = umsg.attributes.commstatus {
-                (
-                    commstatus.enum_value_or(UCode::UNIMPLEMENTED),
-                    message_type_e::MT_ERROR,
-                )
+        let (commstatus, vsomeip_msg_type) = if let Some(commstatus) = umsg.attributes.commstatus {
+            let status_val = commstatus.enum_value_or(UCode::UNIMPLEMENTED);
+            if status_val == UCode::OK {
+                (UCode::OK, message_type_e::MT_RESPONSE)
             } else {
-                (UCode::UNIMPLEMENTED, message_type_e::MT_RESPONSE)
+                (status_val, message_type_e::MT_ERROR)
             }
+        } else {
+            (UCode::OK, message_type_e::MT_RESPONSE)
         };
 
         vsomeip_msg
@@ -273,7 +273,7 @@ where {
             UCode::INTERNAL => vsomeip::return_code_e::E_NOT_REACHABLE,
             UCode::UNKNOWN => vsomeip::return_code_e::E_NOT_OK,
             UCode::FAILED_PRECONDITION => vsomeip::return_code_e::E_WRONG_PROTOCOL_VERSION,
-            _ => vsomeip::return_code_e::E_UNKNOWN,
+            _ => vsomeip::return_code_e::E_NOT_OK,
         }
     }
 }
@@ -594,4 +594,106 @@ impl VsomeipMessageToUMessage {
     }
 }
 
-// TODO: Add unit tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_ucode_to_vsomeip_err_code_ok() {
+        assert!(
+            UMessageToVsomeipMessage::ucode_to_vsomeip_err_code(UCode::OK)
+                == vsomeip::return_code_e::E_OK
+        );
+    }
+
+    #[test]
+    fn test_unmapped_ucodes_use_generic_error() {
+        for ucode in [
+            UCode::CANCELLED,
+            UCode::ALREADY_EXISTS,
+            UCode::PERMISSION_DENIED,
+            UCode::UNAUTHENTICATED,
+            UCode::RESOURCE_EXHAUSTED,
+            UCode::ABORTED,
+            UCode::OUT_OF_RANGE,
+            UCode::UNIMPLEMENTED,
+        ] {
+            assert!(
+                UMessageToVsomeipMessage::ucode_to_vsomeip_err_code(ucode)
+                    == vsomeip::return_code_e::E_NOT_OK,
+                "unexpected SOME/IP fallback for {ucode:?}"
+            );
+        }
+    }
+
+    // Directly exercise the outbound converter used by the transport.
+    struct TestRpcCorrelationRegistry(u32);
+    impl RpcCorrelationRegistry for TestRpcCorrelationRegistry {
+        fn retrieve_session_id(&self, _: crate::ClientId) -> crate::SessionId {
+            unreachable!()
+        }
+        fn insert_ue_request_correlation(
+            &self,
+            _: crate::SomeIpRequestId,
+            _: &crate::UProtocolReqId,
+            _: &UUri,
+        ) -> Result<(), UStatus> {
+            unreachable!()
+        }
+        fn remove_ue_request_correlation(
+            &self,
+            _: crate::SomeIpRequestId,
+        ) -> Result<(crate::UProtocolReqId, UUri), UStatus> {
+            unreachable!()
+        }
+        fn insert_me_request_correlation(
+            &self,
+            _: crate::UProtocolReqId,
+            _: crate::SomeIpRequestId,
+        ) -> Result<(), UStatus> {
+            unreachable!()
+        }
+        fn remove_me_request_correlation(
+            &self,
+            _: &crate::UProtocolReqId,
+        ) -> Result<crate::SomeIpRequestId, UStatus> {
+            Ok(self.0)
+        }
+    }
+
+    async fn assert_success_response_metadata(commstatus: Option<UCode>) {
+        use up_rust::UUID;
+        use vsomeip_sys::glue::make_runtime_wrapper;
+        let req_id = UUID::build();
+        let registry = Arc::new(TestRpcCorrelationRegistry(0x1234_5678));
+        let mut builder = UMessageBuilder::response(
+            UUri::try_from_parts("client", 0x1000, 1, 0).unwrap(),
+            req_id,
+            UUri::try_from_parts("service", 0x1234, 1, 0x0421).unwrap(),
+        );
+        if let Some(commstatus) = commstatus {
+            builder.with_comm_status(commstatus);
+        }
+        let umsg = builder.build().unwrap();
+        let runtime_wrapper = make_runtime_wrapper(vsomeip::runtime::get());
+        let converted = UMessageToVsomeipMessage::umsg_response_to_vsomeip_message(
+            &umsg,
+            registry,
+            &runtime_wrapper,
+        )
+        .await
+        .unwrap();
+        assert!(
+            converted.get_message_base_pinned().get_message_type() == message_type_e::MT_RESPONSE
+        );
+        assert!(
+            converted.get_message_base_pinned().get_return_code() == vsomeip::return_code_e::E_OK
+        );
+    }
+
+    #[tokio::test]
+    async fn test_success_response_metadata() {
+        assert_success_response_metadata(None).await;
+        assert_success_response_metadata(Some(UCode::OK)).await;
+    }
+}

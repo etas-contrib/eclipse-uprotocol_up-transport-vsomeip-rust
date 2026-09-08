@@ -1,0 +1,26 @@
+{
+  "unicast": "127.0.0.1",
+  "applications": [
+    {
+      "name": "837",
+      "id": "0x0345"
+    }
+  ],
+  "services": [
+    {
+      "service": "0x1234",
+      "instance": "0x0001",
+      "unicast": "127.0.0.2",
+      "reliable": "30511"
+    }
+  ],
+  "routing": "837",
+  "service-discovery": {
+    "enable": "false"
+  },
+  "logging": {
+    "level": "error",
+    "console": "true",
+    "file": { "enable": "false" }
+  }
+}
