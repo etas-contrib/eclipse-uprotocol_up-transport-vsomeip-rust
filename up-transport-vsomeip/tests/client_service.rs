@@ -125,6 +125,7 @@ impl UListener for RequestListener {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial_test::serial]
 async fn client_service() {
     let _ = tracing_subscriber::fmt::try_init();
 

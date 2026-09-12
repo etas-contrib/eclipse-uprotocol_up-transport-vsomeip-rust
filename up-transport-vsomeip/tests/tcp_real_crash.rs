@@ -74,8 +74,6 @@ use up_rust::UCode;
 use up_rust::{UListener, UMessage, UMessageBuilder, UPayloadFormat, UTransport, UUri};
 use up_transport_vsomeip::UPTransportVsomeip;
 
-static TEST_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
-
 const PORT: u16 = 30511;
 /// Per-RPC polling timeout – shows the "stuck" effect on failed RPCs.
 const RPC_TIMEOUT_MS: u64 = 800;
@@ -310,9 +308,9 @@ fn bar(ch: char) {
 // Expected: 1 / 5 responses received.  Total time ≈ 1 × fast + 4 × 800 ms.
 // ─────────────────────────────────────────────────────────────────────────────
 #[tokio::test(flavor = "multi_thread")]
+#[serial_test::serial]
 #[allow(clippy::await_holding_lock)]
 async fn real_tcp_crash_without_fix() {
-    let _lock = TEST_MUTEX.lock().unwrap();
     let _ = tracing_subscriber::fmt::try_init();
 
     println!();
@@ -375,9 +373,9 @@ async fn real_tcp_crash_without_fix() {
 // Expected: 5 / 5 responses received.  Total time ≈ 5 × fast.
 // ─────────────────────────────────────────────────────────────────────────────
 #[tokio::test(flavor = "multi_thread")]
+#[serial_test::serial]
 #[allow(clippy::await_holding_lock)]
 async fn real_tcp_stable_with_fix() {
-    let _lock = TEST_MUTEX.lock().unwrap();
     let _ = tracing_subscriber::fmt::try_init();
 
     println!();

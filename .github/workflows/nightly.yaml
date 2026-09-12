@@ -95,9 +95,7 @@ jobs:
           GENERIC_CPP_STDLIB_PATH: ${{ steps.setup-env.outputs.GENERIC_CPP_STDLIB_PATH }}
         run: |
           LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$VSOMEIP_INSTALL_PATH/lib \
-            cargo test \
-              --verbose --workspace --all-targets -- \
-              --test-threads 1
+            cargo test --verbose --workspace --all-targets
 
 # disabled until we have cargo-deny configuration set up for this repo
 #   deny:
@@ -158,8 +156,7 @@ jobs:
             --no-fail-fast \
             --all-targets \
             --doc --tests \
-            -o xml -o lcov -o html \
-            -- --test-threads 1
+            -o xml -o lcov -o html
 
       - name: Upload coverage report (xml)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

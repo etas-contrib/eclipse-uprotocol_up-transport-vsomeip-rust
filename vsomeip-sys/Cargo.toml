@@ -39,6 +39,9 @@ lazy_static = { workspace = true }
 openssl-sys = { version = "0.9.117", optional = true }
 tracing = { workspace = true }
 
+[dev-dependencies]
+serial_test = { workspace = true }
+
 [build-dependencies]
 autocxx-build = { version = "0.30.0" }
 cmake = { version = "0.1.58" , optional = true }

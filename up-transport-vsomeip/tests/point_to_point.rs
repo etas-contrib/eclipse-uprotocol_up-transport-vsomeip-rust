@@ -325,6 +325,7 @@ fn any_from_authority(authority_name: &str) -> UUri {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[serial_test::serial]
 async fn point_to_point() {
     let _ = tracing_subscriber::fmt::try_init();
 

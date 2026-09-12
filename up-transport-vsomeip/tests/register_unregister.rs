@@ -26,6 +26,7 @@ mod tests {
     use up_transport_vsomeip::VsomeipApplicationConfig;
 
     #[tokio::test(flavor = "multi_thread")]
+    #[serial_test::serial]
     async fn test_registering_unregistering_publish() {
         test_lib::before_test();
 
@@ -70,6 +71,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
+    #[serial_test::serial]
     async fn test_registering_unregistering_request() {
         test_lib::before_test();
 
@@ -115,6 +117,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
+    #[serial_test::serial]
     async fn test_registering_unregistering_response() {
         test_lib::before_test();
 
@@ -168,6 +171,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread")]
+    #[serial_test::serial]
     async fn test_registering_unregistering_all_point_to_point() {
         test_lib::before_test();
 
